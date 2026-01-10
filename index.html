@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento Espiritual - Amigos da Vida</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+
+    <div id="booking-form-container" class="w-full max-w-lg bg-white p-8 rounded-xl shadow-2xl transition-all duration-300">
+        <h1 class="text-3xl font-extrabold text-blue-800 mb-2">Consulta Espiritual</h1>
+        <p class="text-gray-600 mb-8">Agende seu horário com os Amigos da Vida.</p>
+
+        <form id="booking-form" class="space-y-6">
+            <div>
+                <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                <input type="text" id="clientName" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm" placeholder="Seu nome completo">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="consultationDate" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                    <input type="date" id="consultationDate" required class="w-full p-3 border border-gray-300 rounded-lg shadow-sm">
+                </div>
+                <div>
+                    <label for="consultationTime" class="block text-sm font-medium text-gray-700 mb-1">Horário</label>
+                    <select id="consultationTime" required class="w-full p-3 border border-gray-300 rounded-lg shadow-sm">
+                        <option value="">Escolha...</option>
+                        <option value="08:00">08:00</option>
+                        <option value="09:00">09:00</option>
+                        <option value="10:00">10:00</option>
+                        <option value="14:00">14:00</option>
+                        <option value="15:00">15:00</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="btn-enviar" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition duration-300 shadow-lg">
+                Confirmar Agendamento
+            </button>
+        </form>
+
+        <div id="success-message" class="hidden mt-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg text-center animate-bounce">
+            ✨ Agendamento realizado com sucesso!
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW0RYky6TbkSW4fj0ZntW6SbnI8ZpEvmBBQTdYjnMl_J217uFsa1oKehhHJtDPuKfCRg/exec";
+
+        document.getElementById('booking-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-enviar');
+            const successMsg = document.getElementById('success-message');
+            
+            btn.disabled = true;
+            btn.innerText = "Processando...";
+
+            const dados = {
+                nome: document.getElementById('clientName').value,
+                horario: document.getElementById('consultationTime').value,
+                servico: "Consulta em: " + document.getElementById('consultationDate').value
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(dados)
+            })
+            .then(() => {
+                successMsg.classList.remove('hidden');
+                btn.innerText = "Agendado!";
+                document.getElementById('booking-form').reset();
+                
+                setTimeout(() => {
+                    successMsg.classList.add('hidden');
+                    btn.disabled = false;
+                    btn.innerText = "Confirmar Agendamento";
+                }, 5000);
+            })
+            .catch(error => {
+                alert("Erro ao enviar. Tente novamente.");
+                btn.disabled = false;
+                btn.innerText = "Confirmar Agendamento";
+            });
+        });
+    </script>
+</body>
+</html>
