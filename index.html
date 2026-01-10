@@ -4,25 +4,30 @@
     <meta charset="UTF-8"><title>Agendamento Amigos da Vida</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 p-5 font-sans">
-    <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg">
-        <h2 class="text-2xl font-bold mb-6 text-blue-800">Agendamento</h2>
-        <input type="text" id="nome" placeholder="Nome" class="w-full p-3 border rounded-lg mb-4">
-        <input type="date" id="data" class="w-full p-3 border rounded-lg mb-4">
-        <select id="horario" class="w-full p-3 border rounded-lg mb-6"><option>Selecione a data...</option></select>
-        <button onclick="enviar()" id="btn" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold">CONFIRMAR</button>
+<body class="bg-slate-100 p-5 flex items-center justify-center min-h-screen">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">Agendamento Online</h2>
+        <div class="space-y-4">
+            <input type="text" id="nome" placeholder="Nome do Paciente" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="date" id="data" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            <select id="horario" class="w-full p-3 border rounded-lg bg-white outline-none">
+                <option value="">Selecione a data...</option>
+            </select>
+            <button onclick="enviar()" id="btn" class="w-full bg-blue-700 text-white p-4 rounded-xl font-bold shadow-lg active:scale-95 disabled:bg-gray-400">CONFIRMAR AGENDAMENTO</button>
+        </div>
     </div>
 
     <script>
-        // COLE AQUI O LINK NOVO QUE VOCÊ GEROU NO PASSO 2
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
         document.getElementById('data').addEventListener('change', async function() {
             const select = document.getElementById('horario');
-            const dia = new Date(this.value).getUTCDay();
-            if(![3, 4].includes(dia)) { alert("Somente Quartas e Quintas!"); this.value=""; return; }
+            const dataVal = this.value;
+            const dia = new Date(dataVal).getUTCDay();
+
+            if(![3, 4].includes(dia)) { alert("Apenas Quartas e Quintas!"); this.value=""; return; }
             
-            select.innerHTML = '<option>Verificando...</option>';
+            select.innerHTML = '<option>Sincronizando com a planilha...</option>';
             try {
                 const res = await fetch(SCRIPT_URL);
                 const ocupados = await res.json();
@@ -30,28 +35,36 @@
                 const slots = ["08:00","08:15","08:30","08:45","09:00","09:15","09:30","09:45","10:00","10:15","10:30","10:45","11:00","11:15","11:30","11:45","13:00","13:15","13:30","13:45","14:00","14:15","14:30","14:45","15:00","15:15","15:30","15:45","16:00","16:15","16:30","16:45"];
                 
                 slots.forEach(h => {
-                    const chave = h + "-Data: " + this.value;
+                    const chave = h + "|Data: " + dataVal;
+                    // Só mostra o horário se ele não estiver na lista de ocupados da planilha
                     if (!ocupados.includes(chave)) html += `<option value="${h}">${h}</option>`;
                 });
                 select.innerHTML = html;
-            } catch (e) { alert("Erro ao ler planilha. Verifique o link!"); }
+            } catch (e) { alert("Erro ao carregar horários. Verifique o link do script."); }
         });
 
         async function enviar() {
             const btn = document.getElementById('btn');
-            const dados = {
-                nome: document.getElementById('nome').value,
-                horario: document.getElementById('horario').value,
-                servico: "Data: " + document.getElementById('data').value
-            };
-            if(!dados.nome || !dados.horario) return alert("Preencha tudo!");
+            const nome = document.getElementById('nome').value;
+            const data = document.getElementById('data').value;
+            const horario = document.getElementById('horario').value;
+
+            if(!nome || !horario) return alert("Preencha todos os campos!");
             
             btn.disabled = true; btn.innerText = "Gravando...";
             
-            // Mudança para garantir que o Google receba e valide
+            const dados = { nome: nome, horario: horario, servico: "Data: " + data };
+
             fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dados) })
-            .then(() => { alert("Agendado!"); location.reload(); })
-            .catch(() => { alert("Erro ao gravar."); btn.disabled = false; });
+            .then(res => res.text())
+            .then(txt => {
+                if(txt === "ERRO_DUPLICADO") {
+                    alert("⚠️ Este horário foi preenchido agora mesmo por outra pessoa! Escolha outro.");
+                } else {
+                    alert("✅ Agendamento realizado!");
+                }
+                location.reload();
+            });
         }
     </script>
 </body>
