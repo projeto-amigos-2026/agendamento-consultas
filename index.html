@@ -6,72 +6,71 @@
     <title>Agendamento Amigos da Vida</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
-        <h1 class="text-2xl font-bold text-blue-900 mb-6 text-center">Agendamento Online</h1>
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-blue-700">
+        <h1 class="text-2xl font-bold text-slate-800 mb-2 text-center">Agendamento</h1>
+        <p class="text-slate-500 text-sm text-center mb-8 font-medium italic">Amigos da Vida</p>
         
-        <div class="space-y-4">
+        <div class="space-y-5">
             <div>
-                <label class="block text-sm font-semibold text-gray-700">Nome do Paciente</label>
-                <input type="text" id="nome" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu nome">
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nome Completo</label>
+                <input type="text" id="nome" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: João Silva">
             </div>
 
             <div>
-                <label class="block text-sm font-semibold text-gray-700">Data (Quarta ou Quinta)</label>
-                <input type="date" id="data" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Data da Consulta</label>
+                <input type="date" id="data" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
             <div>
-                <label class="block text-sm font-semibold text-gray-700">Horários Disponíveis</label>
-                <select id="horario" class="w-full p-3 border border-gray-300 rounded-lg outline-none bg-white">
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Horário Disponível</label>
+                <select id="horario" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="">Selecione uma data primeiro...</option>
                 </select>
             </div>
 
-            <button onclick="enviar()" id="btn" class="w-full bg-blue-700 text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition shadow-md">
-                Confirmar Agendamento
+            <button onclick="enviar()" id="btn" class="w-full bg-blue-700 text-white font-black py-4 rounded-xl hover:bg-blue-800 transition-all shadow-lg active:scale-95 disabled:bg-slate-400">
+                CONFIRMAR AGENDAMENTO
             </button>
         </div>
 
-        <div id="loader" class="hidden mt-4 text-center text-blue-600 font-medium animate-pulse">
-            Consultando horários livres...
+        <div id="loader" class="hidden mt-4 text-center text-blue-700 text-sm font-bold animate-pulse">
+            Sincronizando com a planilha...
         </div>
     </div>
 
     <script>
-        // SEU LINK ATUALIZADO
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
         const inputData = document.getElementById('data');
         const selectHorario = document.getElementById('horario');
         const loader = document.getElementById('loader');
 
-        inputData.addEventListener('change', function() {
+        inputData.addEventListener('change', async function() {
             const date = new Date(this.value);
-            const diaSemana = date.getUTCDay(); // 3 = Quarta, 4 = Quinta
+            const diaSemana = date.getUTCDay();
 
             if (diaSemana !== 3 && diaSemana !== 4) {
-                alert("Atendimentos apenas quartas e quintas.");
+                alert("Atendimentos apenas Quartas e Quintas.");
                 this.value = "";
                 return;
             }
-            atualizarHorarios();
+            carregarHorariosLivres();
         });
 
-        async function atualizarHorarios() {
+        async function carregarHorariosLivres() {
             const dataSel = inputData.value;
             if (!dataSel) return;
 
             loader.classList.remove('hidden');
-            selectHorario.innerHTML = '<option>Carregando...</option>';
+            selectHorario.innerHTML = '<option>A verificar disponibilidade...</option>';
 
             try {
-                // Busca na planilha o que já está ocupado
                 const response = await fetch(SCRIPT_URL);
-                const ocupados = await response.json();
+                const ocupados = await response.json(); // Recebe lista de chaves "HORA|DATA"
                 
-                let options = '<option value="">Escolha um horário</option>';
+                let html = '<option value="">Escolha um horário</option>';
                 const turnos = [{i: 8, f: 12}, {i: 13, f: 17}];
                 const dataFormatada = "Data: " + dataSel;
 
@@ -79,19 +78,18 @@
                     for (let h = t.i; h < t.f; h++) {
                         for (let m = 0; m < 60; m += 15) {
                             const hora = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                            
-                            // SÓ MOSTRA SE NÃO ESTIVER OCUPADO
-                            const ocupado = ocupados.some(o => o.horario === hora && o.data === dataFormatada);
-                            
-                            if (!ocupado) {
-                                options += `<option value="${hora}">${hora}</option>`;
+                            const chaveTeste = hora + "|" + dataFormatada;
+
+                            // SÓ MOSTRA SE A CHAVE NÃO EXISTIR NA LISTA DE OCUPADOS
+                            if (!ocupados.includes(chaveTeste)) {
+                                html += `<option value="${hora}">${hora}</option>`;
                             }
                         }
                     }
                 });
-                selectHorario.innerHTML = options;
+                selectHorario.innerHTML = html;
             } catch (e) {
-                alert("Erro ao conectar com a planilha.");
+                alert("Erro ao conectar com a base de dados.");
             } finally {
                 loader.classList.add('hidden');
             }
@@ -103,17 +101,27 @@
             const horario = selectHorario.value;
             const btn = document.getElementById('btn');
 
-            if (!nome || !data || !horario) return alert("Preencha tudo!");
+            if (!nome || !data || !horario) return alert("Preencha todos os campos!");
 
             btn.disabled = true;
-            btn.innerText = "Agendando...";
+            btn.innerText = "A PROCESSAR...";
+
+            const dados = {
+                nome: nome,
+                horario: horario,
+                servico: "Data: " + data
+            };
 
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({nome: nome, horario: horario, servico: "Data: " + data})
+                mode: 'no-cors',
+                body: JSON.stringify(dados)
             }).then(() => {
-                alert("Agendado com sucesso!");
+                alert("✅ Agendamento solicitado! Se o horário já estiver ocupado por outra pessoa no mesmo instante, ele não será gravado.");
                 location.reload();
+            }).catch(() => {
+                alert("Erro na ligação.");
+                btn.disabled = false;
             });
         }
     </script>
