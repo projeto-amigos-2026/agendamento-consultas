@@ -1,67 +1,81 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8"><title>Agendamento Amigos da Vida</title>
+    <meta charset="UTF-8">
+    <title>Agendamento Amigos da Vida</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 p-5 flex items-center justify-center min-h-screen">
-    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">Agendamento Online</h2>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-8 border-blue-600">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Agendamento de Consultas</h1>
+        
         <div class="space-y-4">
-            <input type="text" id="nome" placeholder="Nome do Paciente" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-            <input type="date" id="data" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="nome" placeholder="Nome do Paciente" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="date" id="data" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            
             <select id="horario" class="w-full p-3 border rounded-lg bg-white outline-none">
-                <option value="">Selecione a data...</option>
+                <option value="">Selecione a data primeiro...</option>
             </select>
-            <button onclick="enviar()" id="btn" class="w-full bg-blue-700 text-white p-4 rounded-xl font-bold shadow-lg active:scale-95 disabled:bg-gray-400">CONFIRMAR AGENDAMENTO</button>
+
+            <button onclick="enviar()" id="btn" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition">CONFIRMAR AGENDAMENTO</button>
         </div>
+        <p id="msg" class="text-center mt-4 text-sm font-bold text-blue-600 hidden">Verificando disponibilidade...</p>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
+        // ATENÇÃO: Cole aqui o link NOVO que você gerou no passo anterior
+        const SCRIPT_URL = "SEU_NOVO_LINK_AQUI";
 
         document.getElementById('data').addEventListener('change', async function() {
-            const select = document.getElementById('horario');
             const dataVal = this.value;
-            const dia = new Date(dataVal).getUTCDay();
-
-            if(![3, 4].includes(dia)) { alert("Apenas Quartas e Quintas!"); this.value=""; return; }
+            const select = document.getElementById('horario');
+            const msg = document.getElementById('msg');
             
-            select.innerHTML = '<option>Sincronizando com a planilha...</option>';
+            const dia = new Date(dataVal).getUTCDay();
+            if(![3, 4].includes(dia)) { alert("Atendimentos apenas Quartas e Quintas."); this.value=""; return; }
+
+            msg.classList.remove('hidden');
+            select.innerHTML = '<option>Carregando horários livres...</option>';
+
             try {
+                // O site lê a planilha em tempo real
                 const res = await fetch(SCRIPT_URL);
                 const ocupados = await res.json();
+                
                 let html = '<option value="">Escolha um horário</option>';
                 const slots = ["08:00","08:15","08:30","08:45","09:00","09:15","09:30","09:45","10:00","10:15","10:30","10:45","11:00","11:15","11:30","11:45","13:00","13:15","13:30","13:45","14:00","14:15","14:30","14:45","15:00","15:15","15:30","15:45","16:00","16:15","16:30","16:45"];
                 
                 slots.forEach(h => {
                     const chave = h + "|Data: " + dataVal;
-                    // Só mostra o horário se ele não estiver na lista de ocupados da planilha
-                    if (!ocupados.includes(chave)) html += `<option value="${h}">${h}</option>`;
+                    // BLOQUEIO: Se o horário+data já estiver na planilha, ele não aparece como opção
+                    if (!ocupados.includes(chave)) {
+                        html += `<option value="${h}">${h}</option>`;
+                    }
                 });
                 select.innerHTML = html;
-            } catch (e) { alert("Erro ao carregar horários. Verifique o link do script."); }
+            } catch (e) { alert("Erro ao sincronizar. Verifique sua conexão e o link do script."); }
+            msg.classList.add('hidden');
         });
 
         async function enviar() {
             const btn = document.getElementById('btn');
-            const nome = document.getElementById('nome').value;
-            const data = document.getElementById('data').value;
-            const horario = document.getElementById('horario').value;
+            const dados = {
+                nome: document.getElementById('nome').value,
+                horario: document.getElementById('horario').value,
+                servico: "Data: " + document.getElementById('data').value
+            };
 
-            if(!nome || !horario) return alert("Preencha todos os campos!");
+            if(!dados.nome || !dados.horario) return alert("Preencha todos os campos!");
             
-            btn.disabled = true; btn.innerText = "Gravando...";
-            
-            const dados = { nome: nome, horario: horario, servico: "Data: " + data };
+            btn.disabled = true; btn.innerText = "Processando...";
 
             fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dados) })
             .then(res => res.text())
             .then(txt => {
-                if(txt === "ERRO_DUPLICADO") {
-                    alert("⚠️ Este horário foi preenchido agora mesmo por outra pessoa! Escolha outro.");
+                if(txt === "ERRO_OCUPADO") {
+                    alert("⚠️ Desculpe, alguém acabou de agendar esse horário! Tente outro.");
                 } else {
-                    alert("✅ Agendamento realizado!");
+                    alert("✅ Agendamento realizado com sucesso!");
                 }
                 location.reload();
             });
