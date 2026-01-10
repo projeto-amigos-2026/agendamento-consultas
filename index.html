@@ -6,122 +6,85 @@
     <title>Agendamento Amigos da Vida</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
-
-    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-blue-700">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2 text-center">Agendamento</h1>
-        <p class="text-slate-500 text-sm text-center mb-8 font-medium italic">Amigos da Vida</p>
+<body class="bg-slate-100 p-4">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-600">
+        <h2 class="text-xl font-bold text-center mb-6">Agendamento de Consultas</h2>
         
-        <div class="space-y-5">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nome Completo</label>
-                <input type="text" id="nome" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: João Silva">
-            </div>
+        <input type="text" id="nome" class="w-full p-3 border rounded mb-4" placeholder="Nome do Paciente">
+        <input type="date" id="data" class="w-full p-3 border rounded mb-4">
+        
+        <select id="horario" class="w-full p-3 border rounded mb-6 bg-white">
+            <option value="">Selecione a data...</option>
+        </select>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Data da Consulta</label>
-                <input type="date" id="data" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Horário Disponível</label>
-                <select id="horario" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">Selecione uma data primeiro...</option>
-                </select>
-            </div>
-
-            <button onclick="enviar()" id="btn" class="w-full bg-blue-700 text-white font-black py-4 rounded-xl hover:bg-blue-800 transition-all shadow-lg active:scale-95 disabled:bg-slate-400">
-                CONFIRMAR AGENDAMENTO
-            </button>
-        </div>
-
-        <div id="loader" class="hidden mt-4 text-center text-blue-700 text-sm font-bold animate-pulse">
-            Sincronizando com a planilha...
-        </div>
+        <button onclick="confirmar()" id="btn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold shadow-md">
+            Confirmar Horário
+        </button>
     </div>
 
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
-        const inputData = document.getElementById('data');
-        const selectHorario = document.getElementById('horario');
-        const loader = document.getElementById('loader');
-
-        inputData.addEventListener('change', async function() {
-            const date = new Date(this.value);
-            const diaSemana = date.getUTCDay();
-
-            if (diaSemana !== 3 && diaSemana !== 4) {
-                alert("Atendimentos apenas Quartas e Quintas.");
-                this.value = "";
-                return;
+        document.getElementById('data').addEventListener('change', async function() {
+            const dataSel = this.value;
+            const select = document.getElementById('horario');
+            
+            // Valida Quartas (3) e Quintas (4)
+            const dia = new Date(dataSel).getUTCDay();
+            if(![3, 4].includes(dia)) {
+                alert("Atendimento apenas Quartas e Quintas.");
+                this.value = ""; return;
             }
-            carregarHorariosLivres();
-        });
 
-        async function carregarHorariosLivres() {
-            const dataSel = inputData.value;
-            if (!dataSel) return;
-
-            loader.classList.remove('hidden');
-            selectHorario.innerHTML = '<option>A verificar disponibilidade...</option>';
+            select.innerHTML = '<option>Verificando vagas...</option>';
 
             try {
-                const response = await fetch(SCRIPT_URL);
-                const ocupados = await response.json(); // Recebe lista de chaves "HORA|DATA"
+                const res = await fetch(SCRIPT_URL);
+                const ocupados = await res.json();
                 
                 let html = '<option value="">Escolha um horário</option>';
-                const turnos = [{i: 8, f: 12}, {i: 13, f: 17}];
-                const dataFormatada = "Data: " + dataSel;
+                const turnos = [{i:8, f:12}, {i:13, f:17}];
+                const prefixoData = "Data: " + dataSel;
 
                 turnos.forEach(t => {
                     for (let h = t.i; h < t.f; h++) {
                         for (let m = 0; m < 60; m += 15) {
-                            const hora = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                            const chaveTeste = hora + "|" + dataFormatada;
-
-                            // SÓ MOSTRA SE A CHAVE NÃO EXISTIR NA LISTA DE OCUPADOS
-                            if (!ocupados.includes(chaveTeste)) {
+                            const hora = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                            const chave = hora + "|" + prefixoData;
+                            
+                            // BLOQUEIO: Se a chave (Hora|Data) estiver na lista de ocupados, não aparece
+                            if (!ocupados.includes(chave)) {
                                 html += `<option value="${hora}">${hora}</option>`;
                             }
                         }
                     }
                 });
-                selectHorario.innerHTML = html;
-            } catch (e) {
-                alert("Erro ao conectar com a base de dados.");
-            } finally {
-                loader.classList.add('hidden');
-            }
-        }
+                select.innerHTML = html;
+            } catch (e) { alert("Erro ao carregar horários."); }
+        });
 
-        function enviar() {
-            const nome = document.getElementById('nome').value;
-            const data = inputData.value;
-            const horario = selectHorario.value;
+        function confirmar() {
             const btn = document.getElementById('btn');
-
-            if (!nome || !data || !horario) return alert("Preencha todos os campos!");
-
-            btn.disabled = true;
-            btn.innerText = "A PROCESSAR...";
-
-            const dados = {
-                nome: nome,
-                horario: horario,
-                servico: "Data: " + data
+            const d = {
+                nome: document.getElementById('nome').value,
+                horario: document.getElementById('horario').value,
+                servico: "Data: " + document.getElementById('data').value
             };
 
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(dados)
-            }).then(() => {
-                alert("✅ Agendamento solicitado! Se o horário já estiver ocupado por outra pessoa no mesmo instante, ele não será gravado.");
+            if(!d.nome || !d.horario) return alert("Preencha tudo!");
+            
+            btn.disabled = true;
+            btn.innerText = "Gravando...";
+
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(d) })
+            .then(res => res.text())
+            .then(txt => {
+                if(txt === "ERRO_DUPLICADO") {
+                    alert("⚠️ Este horário acabou de ser preenchido por outra pessoa! Escolha outro.");
+                } else {
+                    alert("✅ Agendamento realizado com sucesso!");
+                }
                 location.reload();
-            }).catch(() => {
-                alert("Erro na ligação.");
-                btn.disabled = false;
             });
         }
     </script>
