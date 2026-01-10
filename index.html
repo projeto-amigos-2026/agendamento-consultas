@@ -6,37 +6,37 @@
     <title>Agendamento Amigos da Vida</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-blue-50 min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
-        <h1 class="text-2xl font-bold text-blue-900 mb-6 text-center">Agendamento Espiritual</h1>
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl">
+        <h1 class="text-2xl font-bold text-blue-900 mb-2 text-center">Amigos da Vida</h1>
+        <p class="text-gray-500 text-sm text-center mb-6">Agendamento de Consultas</p>
         
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700">Nome do Paciente</label>
-                <input type="text" id="nome" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Digite seu nome">
+                <input type="text" id="nome" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" placeholder="Nome completo">
             </div>
 
             <div>
-                <label class="block text-sm font-semibold text-gray-700">Data (Quarta ou Quinta)</label>
-                <input type="date" id="data" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                <p class="text-xs text-gray-500 mt-1">* Atendimentos apenas quartas e quintas.</p>
+                <label class="block text-sm font-semibold text-gray-700">Data (Apenas Quarta ou Quinta)</label>
+                <input type="date" id="data" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
             </div>
 
             <div>
-                <label class="block text-sm font-semibold text-gray-700">Horário Disponível</label>
-                <select id="horario" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                <label class="block text-sm font-semibold text-gray-700">Horários Disponíveis (15 min)</label>
+                <select id="horario" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm">
                     <option value="">Selecione uma data primeiro...</option>
                 </select>
             </div>
 
-            <button onclick="enviarAgendamento()" id="btn-enviar" class="w-full bg-blue-700 text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition duration-300 shadow-md">
+            <button onclick="enviarAgendamento()" id="btn-enviar" class="w-full bg-blue-700 text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition duration-300 shadow-lg transform active:scale-95">
                 Confirmar Agendamento
             </button>
         </div>
 
         <div id="loader" class="hidden mt-4 text-center text-blue-600 font-medium animate-pulse">
-            Consultando disponibilidade...
+            Verificando horários na planilha...
         </div>
     </div>
 
@@ -47,35 +47,36 @@
         const selectHorario = document.getElementById('horario');
         const loader = document.getElementById('loader');
 
-        // Validação de dias da semana (3 = Quarta, 4 = Quinta)
+        // Bloqueia dias que não são quarta (3) ou quinta (4)
         inputData.addEventListener('change', function() {
             const date = new Date(this.value);
             const diaSemana = date.getUTCDay();
 
             if (diaSemana !== 3 && diaSemana !== 4) {
-                alert("Por favor, selecione apenas Quartas ou Quintas-feiras.");
+                alert("Atendimentos realizados apenas às Quartas e Quintas-feiras.");
                 this.value = "";
                 selectHorario.innerHTML = '<option value="">Selecione uma data válida...</option>';
                 return;
             }
-            buscarHorariosOcupados();
+            buscarDisponibilidade();
         });
 
-        async function buscarHorariosOcupados() {
+        async function buscarDisponibilidade() {
             const dataSelecionada = inputData.value;
             if (!dataSelecionada) return;
 
             loader.classList.remove('hidden');
-            selectHorario.innerHTML = '<option value="">Carregando...</option>';
+            selectHorario.innerHTML = '<option value="">Carregando horários livres...</option>';
 
             try {
+                // O site "lê" a planilha antes de mostrar os horários
                 const response = await fetch(SCRIPT_URL);
                 const ocupados = await response.json();
                 
                 gerarSlots(dataSelecionada, ocupados);
             } catch (error) {
-                console.error("Erro ao buscar horários:", error);
-                gerarSlots(dataSelecionada, []);
+                console.error("Erro:", error);
+                alert("Erro ao consultar horários. Verifique sua conexão.");
             } finally {
                 loader.classList.add('hidden');
             }
@@ -88,16 +89,20 @@
                 { inicio: 13, fim: 17 }
             ];
 
+            const dataFormatada = "Data: " + dataRef;
+
             turnos.forEach(turno => {
                 for (let h = turno.inicio; h < turno.fim; h++) {
                     for (let m = 0; m < 60; m += 15) {
                         const horaFormatada = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                        const dataFormatada = "Data: " + dataRef;
 
-                        // Verifica se este slot já existe na planilha
-                        const estaOcupado = ocupados.some(o => o.horario === horaFormatada && o.data === dataFormatada);
+                        // TRAVA REAL: Se o horário + data já existir no array 'ocupados', ele não entra na lista
+                        const jaEstaOcupado = ocupados.some(o => 
+                            String(o.horario).trim() === String(horaFormatada).trim() && 
+                            String(o.data).trim() === String(dataFormatada).trim()
+                        );
 
-                        if (!estaOcupado) {
+                        if (!jaEstaOcupado) {
                             options += `<option value="${horaFormatada}">${horaFormatada}</option>`;
                         }
                     }
@@ -114,12 +119,12 @@
             const btn = document.getElementById('btn-enviar');
 
             if (!nome || !data || !horario) {
-                alert("Por favor, preencha todos os campos.");
+                alert("Preencha todos os campos antes de confirmar.");
                 return;
             }
 
             btn.disabled = true;
-            btn.innerText = "Agendando... Aguarde";
+            btn.innerText = "Gravando na planilha...";
 
             const dados = {
                 nome: nome,
@@ -133,11 +138,11 @@
                 body: JSON.stringify(dados)
             })
             .then(() => {
-                alert("✅ Agendamento realizado com sucesso!");
+                alert("✅ Sucesso! Seu horário foi reservado.");
                 window.location.reload();
             })
             .catch(err => {
-                alert("Erro ao agendar. Tente novamente.");
+                alert("Erro ao salvar. Tente novamente.");
                 btn.disabled = false;
                 btn.innerText = "Confirmar Agendamento";
             });
