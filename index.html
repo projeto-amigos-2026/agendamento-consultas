@@ -18,13 +18,13 @@
                 <option value="">Selecione a data primeiro...</option>
             </select>
 
-            <button onclick="enviar()" id="btn" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition">CONFIRMAR AGENDAMENTO</button>
+            <button onclick="enviar()" id="btn" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:bg-gray-400">CONFIRMAR AGENDAMENTO</button>
         </div>
         <p id="msg" class="text-center mt-4 text-sm font-bold text-blue-600 hidden">Verificando disponibilidade...</p>
     </div>
 
     <script>
-        // ATENÇÃO: Substitua pelo link gerado em Implantação > Nova Implantação
+        // COLE O SEU LINK DE IMPLANTAÇÃO AQUI
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
         document.getElementById('data').addEventListener('change', async function() {
@@ -34,11 +34,9 @@
             
             if(!dataVal) return;
 
-            // Correção de fuso horário para validar o dia da semana corretamente
             const dataObj = new Date(dataVal + 'T00:00:00');
             const dia = dataObj.getDay(); 
 
-            // Atendimentos apenas Quartas (3) e Quintas (4)
             if(![3, 4].includes(dia)) { 
                 alert("Atendimentos apenas Quartas e Quintas."); 
                 this.value = ""; 
@@ -46,10 +44,9 @@
             }
 
             msg.classList.remove('hidden');
-            select.innerHTML = '<option>Carregando horários livres...</option>';
+            select.innerHTML = '<option>Carregando horários...</option>';
 
             try {
-                // Busca os horários ocupados na planilha em tempo real [cite: 2, 3]
                 const res = await fetch(SCRIPT_URL);
                 const ocupados = await res.json();
                 
@@ -57,56 +54,54 @@
                 const slots = ["08:00","08:15","08:30","08:45","09:00","09:15","09:30","09:45","10:00","10:15","10:30","10:45","11:00","11:15","11:30","11:45","13:00","13:15","13:30","13:45","14:00","14:15","14:30","14:45","15:00","15:15","15:30","15:45","16:00","16:15","16:30","16:45"];
                 
                 slots.forEach(h => {
-                    // A chave deve ser EXATAMENTE igual à composta no Google Script [cite: 2, 7]
+                    // O formato aqui deve bater EXATAMENTE com o que o .gs lê na planilha
                     const chave = h + "|Data: " + dataVal;
-                    
                     if (!ocupados.includes(chave)) {
                         html += `<option value="${h}">${h}</option>`;
                     }
                 });
                 select.innerHTML = html;
             } catch (e) { 
-                alert("Erro ao sincronizar. Verifique a conexão."); 
-                select.innerHTML = '<option value="">Erro ao carregar</option>';
+                alert("Erro ao sincronizar. Tente novamente."); 
             }
             msg.classList.add('hidden');
         });
 
         async function enviar() {
             const btn = document.getElementById('btn');
-            const nome = document.getElementById('nome').value;
+            const nome = document.getElementById('nome').value.trim();
             const horario = document.getElementById('horario').value;
             const dataVal = document.getElementById('data').value;
 
-            if(!nome || !horario || !dataVal) {
-                return alert("Preencha todos os campos!");
-            }
+            if(!nome || !horario || !dataVal) return alert("Preencha todos os campos!");
             
-            const dados = {
-                nome: nome,
-                horario: horario,
-                servico: "Data: " + dataVal
-            };
-
             btn.disabled = true; 
             btn.innerText = "Processando...";
 
             try {
                 const response = await fetch(SCRIPT_URL, { 
                     method: 'POST', 
-                    body: JSON.stringify(dados) 
+                    body: JSON.stringify({
+                        nome: nome,
+                        horario: horario,
+                        servico: "Data: " + dataVal
+                    }) 
                 });
                 const txt = await response.text();
 
                 if(txt === "ERRO_OCUPADO") {
-                    // Mensagem caso dois usuários cliquem quase ao mesmo tempo [cite: 5, 7]
-                    alert("⚠️ Desculpe, alguém acabou de agendar esse horário! Tente outro.");
-                } else {
+                    alert("⚠️ Este horário acaba de ser ocupado por outra pessoa!");
+                    location.reload();
+                } else if(txt === "SUCESSO") {
                     alert("✅ Agendamento realizado com sucesso!");
+                    location.reload();
+                } else {
+                    alert("Erro no servidor. Tente novamente.");
+                    btn.disabled = false;
+                    btn.innerText = "CONFIRMAR AGENDAMENTO";
                 }
-                location.reload();
             } catch (e) {
-                alert("Erro ao enviar agendamento. Tente novamente.");
+                alert("Erro de conexão.");
                 btn.disabled = false;
                 btn.innerText = "CONFIRMAR AGENDAMENTO";
             }
