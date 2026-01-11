@@ -6,13 +6,6 @@
     <link rel="manifest" href="manifest.json">
     <title>Agendamento Amigos da Vida</title>
     
-    <!-- <link rel="manifest" href="manifest.json"> -->
-    <!-- <script> -->
-      <!-- if ('serviceWorker' in navigator) { -->
-    <!-- navigator.serviceWorker.register('sw.js'); -->
-      <!-- } -->
-    <!-- </script> -->
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -59,6 +52,16 @@
             </select>
 
             <button onclick="enviar()" id="btn" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:bg-gray-400">CONFIRMAR AGENDAMENTO</button>
+            
+            <button onclick="document.getElementById('sec-canc').classList.toggle('hidden')" class="w-full mt-4 text-red-500 font-bold text-xs uppercase tracking-widest opacity-70">Precisa cancelar um agendamento?</button>
+
+            <div id="sec-canc" class="hidden mt-4 p-4 border-t border-dashed border-gray-200 space-y-3 text-left">
+                <p class="text-[10px] text-gray-400 uppercase">Informe os dados exatos para cancelar:</p>
+                <input type="text" id="cn" placeholder="Nome do Paciente" class="w-full p-3 text-sm border border-gray-200 rounded-lg outline-none bg-gray-50">
+                <input type="date" id="cd" class="w-full p-3 text-sm border border-gray-200 rounded-lg outline-none bg-gray-50">
+                <input type="text" id="ch" placeholder="Horário (ex: 08:15)" class="w-full p-3 text-sm border border-gray-200 rounded-lg outline-none bg-gray-50">
+                <button onclick="cancelar()" id="btn-c" class="w-full bg-red-500 text-white p-3 rounded-lg font-bold text-sm">CONFIRMAR CANCELAMENTO</button>
+            </div>
         </div>
         <p id="msg" class="text-center mt-4 text-sm font-bold text-blue-600 hidden">Verificando disponibilidade...</p>
     </div>
@@ -79,10 +82,8 @@
     </div>
 
     <script>
-        // Use sua URL do Google Apps Script aqui
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
-        // Registro do Service Worker para o APP
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
@@ -148,7 +149,30 @@
             } catch (e) {
                 alert("Erro ao enviar.");
                 btn.disabled = false;
+                btn.innerText = "CONFIRMAR AGENDAMENTO";
             }
+        }
+
+        async function cancelar() {
+            const n = document.getElementById('cn').value.trim();
+            const d = document.getElementById('cd').value;
+            const h = document.getElementById('ch').value.trim();
+            const b = document.getElementById('btn-c');
+
+            if(!n || !d || !h) return alert("Preencha Nome, Data e Hora para cancelar.");
+            b.disabled = true; b.innerText = "Cancelando...";
+
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=cancelar&nome=${encodeURIComponent(n)}&data=${d}&horario=${h}`, { method: 'POST' });
+                const txt = await res.text();
+                if(txt === "SUCESSO_CANCELADO") {
+                    alert("✅ Agendamento cancelado com sucesso!");
+                    location.reload();
+                } else {
+                    alert("❌ " + (txt === "AGENDAMENTO_NAO_ENCONTRADO" ? "Dados não encontrados." : txt));
+                    b.disabled = false; b.innerText = "CONFIRMAR CANCELAMENTO";
+                }
+            } catch (e) { alert("Erro na conexão."); b.disabled = false; }
         }
 
         function baixarRecibo() {
