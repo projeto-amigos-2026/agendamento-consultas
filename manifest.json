@@ -8,6 +8,12 @@
   "description": "Sistema de Agendamento Amigos da Vida",
   "icons": [
     {
+      "src": "logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
       "sizes": "512x512",
       "type": "image/png"
