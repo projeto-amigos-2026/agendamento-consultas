@@ -4,10 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agendamento Amigos da Vida</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        /* Garante que o seletor de data preencha todo o campo cinza */
+        /* Estilo para o seletor de data preencher o campo cinza */
         input[type="date"]::-webkit-calendar-picker-indicator {
             position: absolute;
             left: 0;
@@ -45,7 +51,7 @@
             </div>
             
             <select id="horario" class="w-full p-4 border border-gray-200 rounded-xl bg-white outline-none">
-                <option value="">Selecione horário...</option>
+                <option value="">Selecione a data primeiro...</option>
             </select>
 
             <button onclick="enviar()" id="btn" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:bg-gray-400">CONFIRMAR AGENDAMENTO</button>
@@ -65,18 +71,22 @@
             <p class="text-[10px] text-gray-400">Amigos da Vida - Comprovante Digital</p>
         </div>
         <button onclick="baixarRecibo()" class="w-full mt-4 bg-green-600 text-white p-4 rounded-xl font-bold">📥 BAIXAR RECIBO (IMAGEM)</button>
-        <button onclick="location.reload()" class="w-full mt-2 text-gray-500 font-semibold text-sm">Fazer outro agendamento</button>
+        <button onclick="location.reload()" class="w-full mt-2 text-gray-500 font-semibold text-sm">Fazer novo agendamento</button>
     </div>
 
     <script>
+        // Use sua URL do Google Apps Script aqui
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
-        // Atualiza o texto do campo cinza quando uma data é escolhida
+        // Registro do Service Worker para o APP
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
         document.getElementById('data').addEventListener('change', async function() {
             const dataVal = this.value;
             const select = document.getElementById('horario');
             const display = document.getElementById('data-display');
-            
             if(!dataVal) return;
 
             const dia = new Date(dataVal + 'T00:00:00').getDay();
@@ -87,9 +97,7 @@
                 return; 
             }
 
-            // Mostra a data escolhida no campo cinza
             display.innerHTML = `<span class="text-gray-800">${dataVal.split('-').reverse().join('/')}</span>`;
-
             document.getElementById('msg').classList.remove('hidden');
             select.innerHTML = '<option>Carregando...</option>';
 
@@ -115,7 +123,6 @@
             const horario = document.getElementById('horario').value;
 
             if(!nome || !dataVal || !horario) return alert("Preencha todos os campos!");
-            
             btn.disabled = true; btn.innerText = "Processando...";
 
             try {
@@ -124,9 +131,8 @@
                     body: JSON.stringify({ nome: nome, horario: horario, servico: "Data: " + dataVal }) 
                 });
                 const txt = await response.text();
-
                 if(txt === "ERRO_OCUPADO") {
-                    alert("⚠️ Este horário foi preenchido por outra pessoa!");
+                    alert("⚠️ Horário já preenchido!");
                     location.reload();
                 } else {
                     document.getElementById('recibo-nome').innerText = nome;
