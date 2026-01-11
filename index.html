@@ -6,8 +6,11 @@
     <title>Agendamento Amigos da Vida</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script>
+      if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+      }
+    </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
