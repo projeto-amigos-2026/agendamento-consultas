@@ -9,13 +9,13 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     
-    <div id="agendamento-container" class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-8 border-blue-600">
+    <div id="agendamento-container" class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-8 border-blue-600 text-center">
         <div class="flex justify-center mb-4">
             <img src="logo.png" alt="Logo Amigos da Vida" class="h-24 w-auto object-contain">
         </div>
 
-        <h1 class="text-xl font-bold text-center text-gray-800 mb-2">Agendamento de Consultas Espiritual Amigos da Vida</h1>
-        <p class="text-center text-sm text-gray-600 mb-6">
+        <h1 class="text-xl font-bold text-gray-800 mb-2">Agendamento de Consultas Espiritual Amigos da Vida</h1>
+        <p class="text-sm text-gray-600 mb-6">
             Atendimentos apenas às <span class="font-bold text-blue-600">Quartas e Quintas-feiras</span>.
         </p>
         
@@ -37,7 +37,7 @@
         <div id="area-recibo" class="bg-white p-8 rounded-2xl shadow-2xl w-full border-t-8 border-green-500 text-center">
             <img src="logo.png" alt="Logo" class="h-16 mx-auto mb-4 opacity-30">
             <h2 class="text-2xl font-bold text-gray-800">Agendamento Confirmado</h2>
-            <div class="bg-gray-50 p-4 rounded-lg text-left space-y-3 my-6 border border-gray-100">
+            <div class="bg-gray-50 p-4 rounded-lg text-left space-y-3 my-6 border border-gray-100 text-gray-700">
                 <p><strong>Paciente:</strong> <span id="recibo-nome"></span></p>
                 <p><strong>Data:</strong> <span id="recibo-data"></span></p>
                 <p><strong>Horário:</strong> <span id="recibo-horario"></span></p>
@@ -45,7 +45,7 @@
             <p class="text-[10px] text-gray-400">Amigos da Vida - Comprovante Digital</p>
         </div>
         <button onclick="baixarRecibo()" class="w-full mt-4 bg-green-600 text-white p-4 rounded-xl font-bold">📥 BAIXAR RECIBO (IMAGEM)</button>
-        <button onclick="location.reload()" class="w-full mt-2 text-gray-500 font-semibold">Fazer outro agendamento</button>
+        <button onclick="location.reload()" class="w-full mt-2 text-gray-500 font-semibold text-sm">Fazer outro agendamento</button>
     </div>
 
     <script>
@@ -56,6 +56,7 @@
             const select = document.getElementById('horario');
             const msg = document.getElementById('msg');
             
+            // Validação de Quarta e Quinta (UTC para evitar erros de fuso)
             const dia = new Date(dataVal + 'T00:00:00').getDay();
             if(![3, 4].includes(dia)) { 
                 alert("Atendimentos apenas Quartas e Quintas."); 
@@ -64,7 +65,7 @@
             }
 
             msg.classList.remove('hidden');
-            select.innerHTML = '<option>Carregando...</option>';
+            select.innerHTML = '<option>Carregando horários...</option>';
 
             try {
                 const res = await fetch(SCRIPT_URL);
@@ -111,6 +112,7 @@
             } catch (e) {
                 alert("Erro ao enviar.");
                 btn.disabled = false;
+                btn.innerText = "CONFIRMAR AGENDAMENTO";
             }
         }
 
