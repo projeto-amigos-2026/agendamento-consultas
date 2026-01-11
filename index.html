@@ -6,6 +6,20 @@
     <title>Agendamento Amigos da Vida</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Garante que o seletor de data preencha todo o campo cinza */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            cursor: pointer;
+            opacity: 0;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     
@@ -22,7 +36,13 @@
         <div class="space-y-4">
             <input type="text" id="nome" placeholder="Nome do Paciente" class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white">
 
-            <input type="date" id="data" class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-100 text-gray-700">
+            <div class="relative w-full p-4 border border-gray-200 rounded-xl bg-gray-100 flex items-center">
+                <input type="date" id="data" class="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer">
+                <div id="data-display" class="text-gray-500 w-full text-left flex justify-between items-center">
+                    <span>Selecionar data...</span>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
             
             <select id="horario" class="w-full p-4 border border-gray-200 rounded-xl bg-white outline-none">
                 <option value="">Selecione a data primeiro...</option>
@@ -51,21 +71,27 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
+        // Atualiza o texto do campo cinza quando uma data é escolhida
         document.getElementById('data').addEventListener('change', async function() {
             const dataVal = this.value;
             const select = document.getElementById('horario');
-            const msg = document.getElementById('msg');
+            const display = document.getElementById('data-display');
             
-            // Validação de Quarta e Quinta (UTC para evitar erros de fuso)
+            if(!dataVal) return;
+
             const dia = new Date(dataVal + 'T00:00:00').getDay();
             if(![3, 4].includes(dia)) { 
                 alert("Atendimentos apenas Quartas e Quintas."); 
                 this.value=""; 
+                display.innerHTML = '<span>Selecionar data...</span>';
                 return; 
             }
 
-            msg.classList.remove('hidden');
-            select.innerHTML = '<option>Carregando horários...</option>';
+            // Mostra a data escolhida no campo cinza
+            display.innerHTML = `<span class="text-gray-800">${dataVal.split('-').reverse().join('/')}</span>`;
+
+            document.getElementById('msg').classList.remove('hidden');
+            select.innerHTML = '<option>Carregando...</option>';
 
             try {
                 const res = await fetch(SCRIPT_URL);
@@ -79,7 +105,7 @@
                 });
                 select.innerHTML = html;
             } catch (e) { alert("Erro ao carregar horários."); }
-            msg.classList.add('hidden');
+            document.getElementById('msg').classList.add('hidden');
         });
 
         async function enviar() {
@@ -112,7 +138,6 @@
             } catch (e) {
                 alert("Erro ao enviar.");
                 btn.disabled = false;
-                btn.innerText = "CONFIRMAR AGENDAMENTO";
             }
         }
 
