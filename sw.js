@@ -1,7 +1,14 @@
+const CACHE_NAME = 'amigos-vida-v1';
+const assets = ['./index.html', './logo.png', './manifest.json'];
+
 self.addEventListener('install', (e) => {
-  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(assets))
+  );
 });
 
 self.addEventListener('fetch', (e) => {
-  e.respondWith(fetch(e.request));
+  e.respondWith(
+    caches.match(e.request).then((res) => res || fetch(e.request))
+  );
 });
