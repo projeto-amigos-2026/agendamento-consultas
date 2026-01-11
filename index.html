@@ -11,19 +11,22 @@
     
     <div id="agendamento-container" class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-8 border-blue-600">
         <div class="flex justify-center mb-4">
-            <img src="logo.png" alt="Logo Amigos da Vida" class="h-24 w-auto object-contain">
+            <img src="logo.jpg" alt="Logo Amigos da Vida" class="h-24 w-auto object-contain">
         </div>
 
-        <h1 class="text-2xl font-bold text-center text-gray-800 mb-2">Agendamento de Consultas Espiritual Amigos da Vida</h1>
+        <h1 class="text-xl font-bold text-center text-gray-800 mb-2">Agendamento de Consultas Espiritual Amigos da Vida</h1>
         <p class="text-center text-sm text-gray-600 mb-6">
             Atendimentos apenas às <span class="font-bold text-blue-600">Quartas e Quintas-feiras</span>.
         </p>
         
         <div class="space-y-4">
-            <input type="text" id="nome" placeholder="Nome do Paciente" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-            <input type="date" id="data" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="text" id="nome" placeholder="Nome do Paciente" class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+
+            <div class="relative">
+                <input type="date" id="data" class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-100 text-gray-700">
+            </div>
             
-            <select id="horario" class="w-full p-3 border rounded-lg bg-white outline-none">
+            <select id="horario" class="w-full p-4 border border-gray-200 rounded-xl bg-white outline-none">
                 <option value="">Selecione a data primeiro...</option>
             </select>
 
@@ -34,49 +37,27 @@
 
     <div id="tela-recibo" class="hidden flex flex-col items-center w-full max-w-md">
         <div id="area-recibo" class="bg-white p-8 rounded-2xl shadow-2xl w-full border-t-8 border-green-500 text-center">
-            <img src="logo.png" alt="Logo" class="h-16 w-auto mx-auto mb-4 opacity-50">
-            <div class="text-green-500 text-5xl mb-2">✅</div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-1">Agendamento Confirmado</h2>
-            <p class="text-gray-500 text-sm mb-6">Amigos da Vida</p>
-            
-            <div class="bg-gray-50 p-4 rounded-lg text-left space-y-3 mb-4 border border-gray-200">
-                <p class="text-sm text-gray-500 uppercase font-bold">Paciente</p>
-                <p id="recibo-nome" class="text-lg text-gray-800 font-semibold mt-[-10px]"></p>
-                
-                <div class="flex justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 uppercase font-bold">Data</p>
-                        <p id="recibo-data" class="text-gray-800 font-semibold"></p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm text-gray-500 uppercase font-bold">Horário</p>
-                        <p id="recibo-horario" class="text-gray-800 font-semibold"></p>
-                    </div>
-                </div>
+            <img src="logo.jpg" alt="Logo" class="h-16 mx-auto mb-4 opacity-30">
+            <h2 class="text-2xl font-bold text-gray-800">Agendamento Confirmado</h2>
+            <div class="bg-gray-50 p-4 rounded-lg text-left space-y-3 my-6 border border-gray-100">
+                <p><strong>Paciente:</strong> <span id="recibo-nome"></span></p>
+                <p><strong>Data:</strong> <span id="recibo-data"></span></p>
+                <p><strong>Horário:</strong> <span id="recibo-horario"></span></p>
             </div>
-            <p class="text-[10px] text-gray-400">Gerado em: <span id="data-emissao"></span></p>
+            <p class="text-[10px] text-gray-400">Amigos da Vida - Comprovante Digital</p>
         </div>
-
-        <div class="w-full mt-4 space-y-2">
-            <button onclick="baixarRecibo()" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold hover:bg-green-700 transition flex justify-center items-center gap-2">
-                📥 BAIXAR RECIBO (IMAGEM)
-            </button>
-            <button onclick="location.reload()" class="w-full bg-gray-200 text-gray-700 p-3 rounded-xl font-semibold hover:bg-gray-300 transition">
-                Fazer novo agendamento
-            </button>
-        </div>
+        <button onclick="baixarRecibo()" class="w-full mt-4 bg-green-600 text-white p-4 rounded-xl font-bold">📥 BAIXAR RECIBO (IMAGEM)</button>
+        <button onclick="location.reload()" class="w-full mt-2 text-gray-500 font-semibold">Fazer outro agendamento</button>
     </div>
 
     <script>
-        // Use o seu SCRIPT_URL atual aqui
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSvb8NSiwVhOEFqZjEYwiZqRvf4iSnbSkikSTz63lVFw4AWW4LOACq2kIUKgiB4wA_zA/exec";
 
         document.getElementById('data').addEventListener('change', async function() {
             const dataVal = this.value;
             const select = document.getElementById('horario');
             const msg = document.getElementById('msg');
-            if(!dataVal) return;
-
+            
             const dia = new Date(dataVal + 'T00:00:00').getDay();
             if(![3, 4].includes(dia)) { 
                 alert("Atendimentos apenas Quartas e Quintas."); 
@@ -85,7 +66,7 @@
             }
 
             msg.classList.remove('hidden');
-            select.innerHTML = '<option>Carregando horários...</option>';
+            select.innerHTML = '<option>Carregando...</option>';
 
             try {
                 const res = await fetch(SCRIPT_URL);
@@ -98,17 +79,17 @@
                     if (!ocupados.includes(chave)) html += `<option value="${h}">${h}</option>`;
                 });
                 select.innerHTML = html;
-            } catch (e) { alert("Erro de conexão."); }
+            } catch (e) { alert("Erro ao carregar horários."); }
             msg.classList.add('hidden');
         });
 
         async function enviar() {
             const btn = document.getElementById('btn');
             const nome = document.getElementById('nome').value.trim();
-            const horario = document.getElementById('horario').value;
             const dataVal = document.getElementById('data').value;
+            const horario = document.getElementById('horario').value;
 
-            if(!nome || !horario || !dataVal) return alert("Preencha tudo!");
+            if(!nome || !dataVal || !horario) return alert("Preencha todos os campos!");
             
             btn.disabled = true; btn.innerText = "Processando...";
 
@@ -120,16 +101,12 @@
                 const txt = await response.text();
 
                 if(txt === "ERRO_OCUPADO") {
-                    alert("⚠️ Este horário foi preenchido agora pouco por outra pessoa!");
+                    alert("⚠️ Este horário foi preenchido por outra pessoa!");
                     location.reload();
                 } else {
-                    // Preenche o recibo
                     document.getElementById('recibo-nome').innerText = nome;
                     document.getElementById('recibo-data').innerText = dataVal.split('-').reverse().join('/');
                     document.getElementById('recibo-horario').innerText = horario;
-                    document.getElementById('data-emissao').innerText = new Date().toLocaleString();
-
-                    // Troca as telas
                     document.getElementById('agendamento-container').classList.add('hidden');
                     document.getElementById('tela-recibo').classList.remove('hidden');
                 }
@@ -140,11 +117,10 @@
         }
 
         function baixarRecibo() {
-            const area = document.getElementById('area-recibo');
-            html2canvas(area, { scale: 2 }).then(canvas => {
+            html2canvas(document.getElementById('area-recibo')).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'recibo-agendamento.png';
-                link.href = canvas.toDataURL('image/png');
+                link.download = 'recibo-amigos-da-vida.png';
+                link.href = canvas.toDataURL();
                 link.click();
             });
         }
