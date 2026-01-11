@@ -1,15 +1,16 @@
 {
-  "name": "Amigos da Vida",
-  "short_name": "AmigosVida",
-  "start_url": "index.html",
+  "name": "Agendamento Amigos da Vida",
+  "short_name": "Amigos da Vida",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
+  "description": "Sistema de Agendamento Amigos da Vida",
   "icons": [
     {
       "src": "logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
